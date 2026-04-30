@@ -1,0 +1,30 @@
+id: T1562.004-001-acl-permit-any
+description: |
+  Pre-state: EDGE-IN ACL with normal permit-tcp-443 + final deny.
+  Post-state: attacker inserts permit ip any any at seq 5 (top of list)
+  — neutralising every rule below. Should fire NET-T1562.004-001.
+device:
+  hostname: r1-test
+  platform: ios-xe
+pre_state:
+  acls:
+    EDGE-IN:
+      type: extended
+      entries:
+        - {seq: 10, action: permit, proto: tcp, src: any, dst: any, dst_port: "443"}
+        - {seq: 20, action: deny, proto: ip, src: any, dst: any, log: true}
+post_state:
+  acls:
+    EDGE-IN:
+      type: extended
+      entries:
+        - {seq: 5, action: permit, proto: ip, src: any, dst: any}
+        - {seq: 10, action: permit, proto: tcp, src: any, dst: any, dst_port: "443"}
+        - {seq: 20, action: deny, proto: ip, src: any, dst: any, log: true}
+expectations:
+  events:
+    - rule_id: NET-T1562.004-001
+      severity: critical
+      attack_technique: T1562
+      attack_subtechnique: T1562.004
+      diff_op_path: "/acls/EDGE-IN/entries/5"

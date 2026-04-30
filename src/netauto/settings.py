@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     snapshots_dir: Path = Path("./snapshots")
     fixtures_dir: Path = Path("tests/fixtures/genie_learn")
     ephemeral_paths_file: Path = Path("config/ephemeral_paths.yaml")
+    rules_dir: Path = Path("config/detections")
 
 
 settings = Settings()

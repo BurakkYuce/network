@@ -1,0 +1,53 @@
+title: Permissive ACL Entry Added (permit any/any)
+id: NET-T1562.004-001
+status: experimental
+description: |
+  An ACL entry matching "permit ip any any" was added. In ordered ACL eval
+  this neutralises every deny below it — defense-impairment archetype
+  (T1562.004). High-fidelity signal because legitimate operators rarely
+  add fully-open permits without a scoped change ticket.
+references:
+  - https://attack.mitre.org/techniques/T1562/004/
+  - https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/sec_data_acl/configuration/15-mt/sec-data-acl-15-mt-book.html
+tags:
+  - attack.defense_evasion
+  - attack.t1562
+  - attack.t1562.004
+logsource:
+  product: cisco
+  service: config-drift
+detection:
+  selection:
+    diff_path:
+      - "/acls/*/entries/*"
+    diff_op:
+      - add
+    diff_value:
+      action: permit
+      proto: ip
+      src: any
+      dst: any
+  condition: selection
+falsepositives:
+  - Approved change ticket scoped to ACL
+  - Lab/test ACL explicitly allowlisted
+level: critical
+custom:
+  attack:
+    tactic: defense-evasion
+    technique: T1562
+    subtechnique: T1562.004
+  response:
+    alert_siem: true
+    notify_slack:
+      channel: "#soc-alerts"
+    snapshot_full_config: true
+    auto_rollback:
+      enabled: true
+      requires_approval: false
+      category: acl
+  fingerprint:
+    fields: [device, diff.path, diff.value.action]
+  test:
+    scenario: tests/fixtures/attack_scenarios/T1562_004_001.yaml
+  replay_safe: true

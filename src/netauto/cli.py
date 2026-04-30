@@ -1,4 +1,5 @@
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 import typer
@@ -7,6 +8,8 @@ from rich.table import Table
 
 from netauto.audit.log import AuditLog
 from netauto.collector.runner import Collector, CollectorError
+from netauto.detection.engine import EvalContext, eval_rules
+from netauto.detection.rule import load_rules_from_dir
 from netauto.inventory import load_testbed
 from netauto.settings import settings
 from netauto.state.diff import diff_states
@@ -202,6 +205,117 @@ def diff(
     )
     if show_ops:
         typer.echo(json.dumps(result.ops, indent=2))
+
+
+@app.command("detect")
+def detect(
+    device: str = typer.Argument(..., help="Device hostname."),
+    from_id: int | None = typer.Option(
+        None, "--from", help="Source snapshot id (default: second-latest)."
+    ),
+    to_id: int | None = typer.Option(None, "--to", help="Target snapshot id (default: latest)."),
+    rules_dir: Path | None = typer.Option(  # noqa: B008
+        None, "--rules-dir", help="Directory containing rule YAMLs."
+    ),
+    db_url: str | None = typer.Option(None, "--db-url", help="Override settings.db_url."),
+    ephemeral_file: Path | None = typer.Option(  # noqa: B008
+        None, "--ephemeral", help="Path to ephemeral_paths.yaml."
+    ),
+) -> None:
+    """Run detection rules over the diff between two snapshots."""
+    store = StateStore(db_url or settings.db_url, create_schema=True)
+    device_id = store.get_device_id(device)
+    if device_id is None:
+        console.print(f"[red]device not found:[/red] {device}")
+        raise typer.Exit(1)
+
+    snapshots = store.list_snapshots(device_id)
+    if from_id is None or to_id is None:
+        if len(snapshots) < 2:
+            console.print(f"[yellow]need 2+ snapshots; have {len(snapshots)} for {device}[/yellow]")
+            raise typer.Exit(1)
+        if from_id is None:
+            from_id = snapshots[1].id
+        if to_id is None:
+            to_id = snapshots[0].id
+
+    old = store.get_snapshot(from_id)
+    new = store.get_snapshot(to_id)
+    if old is None or new is None:
+        console.print("[red]snapshot not found[/red]")
+        raise typer.Exit(1)
+
+    ep_path = ephemeral_file or settings.ephemeral_paths_file
+    patterns = load_ephemeral_patterns(ep_path)
+    diff = diff_states(old, new, patterns)
+
+    rules = load_rules_from_dir(rules_dir or settings.rules_dir)
+    if not rules:
+        console.print(f"[yellow]no rules found in[/yellow] {rules_dir or settings.rules_dir}")
+        raise typer.Exit(1)
+
+    ctx = EvalContext(device_hostname=device, timestamp=datetime.now(UTC))
+    events = eval_rules(diff.ops, rules, ctx)
+
+    audit = AuditLog(settings.audit_log_path)
+    audit.append(
+        "detection.evaluated",
+        {
+            "device": device,
+            "from_snapshot_id": from_id,
+            "to_snapshot_id": to_id,
+            "diff_ops": len(diff.ops),
+            "rules_evaluated": len(rules),
+            "events_emitted": len(events),
+        },
+    )
+
+    if not events:
+        console.print(
+            f"[green]no detections[/green] device={device} from=#{from_id} to=#{to_id} "
+            f"rules={len(rules)} diff_ops={len(diff.ops)}"
+        )
+        return
+
+    table = Table(title=f"Detections ({len(events)})")
+    table.add_column("Rule", style="cyan")
+    table.add_column("Severity")
+    table.add_column("ATT&CK")
+    table.add_column("Path")
+    table.add_column("Op")
+    table.add_column("Actions", style="dim")
+    for e in events:
+        attack_str = e.attack.subtechnique or e.attack.technique
+        sev_color = {
+            "critical": "red bold",
+            "high": "red",
+            "medium": "yellow",
+            "low": "blue",
+            "info": "dim",
+        }.get(e.severity, "white")
+        table.add_row(
+            e.rule_id,
+            f"[{sev_color}]{e.severity}[/{sev_color}]",
+            attack_str,
+            e.diff_op.get("path", ""),
+            e.diff_op.get("op", ""),
+            ",".join(e.response_actions),
+        )
+        audit.append(
+            "detection.event",
+            {
+                "rule_id": e.rule_id,
+                "rule_version": e.rule_version,
+                "severity": e.severity,
+                "device": e.device_hostname,
+                "fingerprint": e.fingerprint,
+                "attack_technique": e.attack.technique,
+                "attack_subtechnique": e.attack.subtechnique,
+                "diff_op_path": e.diff_op.get("path"),
+                "response_actions": e.response_actions,
+            },
+        )
+    console.print(table)
 
 
 if __name__ == "__main__":
