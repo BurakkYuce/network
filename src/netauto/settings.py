@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -19,6 +20,7 @@ class Settings(BaseSettings):
     fixtures_dir: Path = Path("tests/fixtures/genie_learn")
     ephemeral_paths_file: Path = Path("config/ephemeral_paths.yaml")
     rules_dir: Path = Path("config/detections")
+    secrets_provider: Literal["env", "vault"] = "env"
 
 
 settings = Settings()
