@@ -1,0 +1,18 @@
+id: T1098-001-user-priv-escalation
+description: |
+  Pre-state: operator user at privilege 5. Post-state: operator
+  promoted to privilege 15. Should fire NET-T1098-001.
+device:
+  hostname: r1-test
+  platform: ios-xe
+pre_state:
+  users:
+    operator: {privilege: 5, password_set: true}
+post_state:
+  users:
+    operator: {privilege: 15, password_set: true}
+expectations:
+  events:
+    - rule_id: NET-T1098-001
+      severity: critical
+      attack_technique: T1098

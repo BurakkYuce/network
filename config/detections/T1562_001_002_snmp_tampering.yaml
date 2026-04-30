@@ -1,0 +1,49 @@
+title: SNMP Configuration Tampered
+id: NET-T1562.001-002
+status: experimental
+description: |
+  SNMP communities, hosts, or trap destinations changed. Attackers
+  hijack SNMP to redirect monitoring or evade alerting (T1562.001).
+references:
+  - https://attack.mitre.org/techniques/T1562/001/
+tags:
+  - attack.defense_evasion
+  - attack.t1562
+  - attack.t1562.001
+logsource:
+  product: cisco
+  service: config-drift
+detection:
+  selection:
+    diff_path:
+      - "/snmp"
+      - "/snmp/communities"
+      - "/snmp/communities/*"
+      - "/snmp/communities/*/*"
+      - "/snmp/hosts"
+      - "/snmp/hosts/*"
+      - "/snmp/hosts/*/*"
+    diff_op:
+      - add
+      - remove
+      - replace
+  condition: selection
+falsepositives:
+  - Approved SNMP change ticket
+level: high
+custom:
+  attack:
+    tactic: defense-evasion
+    technique: T1562
+    subtechnique: T1562.001
+  response:
+    alert_siem: true
+    notify_slack:
+      channel: "#soc-alerts"
+    snapshot_full_config: true
+    auto_rollback:
+      enabled: false
+      reason: "SNMP rollback can break monitoring; manual review"
+  test:
+    scenario: tests/fixtures/attack_scenarios/T1562_001_002.yaml
+  replay_safe: true

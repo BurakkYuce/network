@@ -1,0 +1,46 @@
+title: ACL Unbound from Interface
+id: NET-T1562.004-002
+status: experimental
+description: |
+  An interface had its inbound ACL (acl_in) set to null — the ACL
+  binding was removed without removing the ACL itself. The configured
+  rules still exist but no longer apply, silently weakening the firewall
+  (T1562.004 — Disable or Modify System Firewall).
+references:
+  - https://attack.mitre.org/techniques/T1562/004/
+tags:
+  - attack.defense_evasion
+  - attack.t1562
+  - attack.t1562.004
+logsource:
+  product: cisco
+  service: config-drift
+detection:
+  selection:
+    diff_path:
+      - "/interfaces/*/acl_in"
+      - "/interfaces/*/acl_out"
+    diff_op:
+      - replace
+      - remove
+  condition: selection
+falsepositives:
+  - Approved interface change ticket scoped to ACL binding
+level: high
+custom:
+  attack:
+    tactic: defense-evasion
+    technique: T1562
+    subtechnique: T1562.004
+  response:
+    alert_siem: true
+    notify_slack:
+      channel: "#soc-alerts"
+    snapshot_full_config: true
+    auto_rollback:
+      enabled: true
+      requires_approval: false
+      category: acl
+  test:
+    scenario: tests/fixtures/attack_scenarios/T1562_004_002.yaml
+  replay_safe: true

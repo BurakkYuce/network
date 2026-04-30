@@ -1,0 +1,21 @@
+id: T1556-001-aaa-server-removed
+description: |
+  Pre-state: two TACACS servers configured. Post-state: one server
+  removed. Should fire NET-T1556-001.
+device:
+  hostname: r1-test
+  platform: ios-xe
+pre_state:
+  aaa:
+    servers:
+      - {address: "10.10.10.5", type: "tacacs+", key_set: true}
+      - {address: "10.10.10.6", type: "tacacs+", key_set: true}
+post_state:
+  aaa:
+    servers:
+      - {address: "10.10.10.5", type: "tacacs+", key_set: true}
+expectations:
+  events:
+    - rule_id: NET-T1556-001
+      severity: critical
+      attack_technique: T1556

@@ -1,0 +1,29 @@
+id: T1133-001-new-vty-no-acl
+description: |
+  Pre-state: vty 0 4 has access_class_in MGMT-IN. Post-state: a new
+  range "vty 5 15" appears with access_class_in=null. Should fire
+  NET-T1133-001.
+device:
+  hostname: r1-test
+  platform: ios-xe
+pre_state:
+  lines:
+    "vty 0 4":
+      range: "vty 0 4"
+      transport_input: ["ssh"]
+      access_class_in: "MGMT-IN"
+post_state:
+  lines:
+    "vty 0 4":
+      range: "vty 0 4"
+      transport_input: ["ssh"]
+      access_class_in: "MGMT-IN"
+    "vty 5 15":
+      range: "vty 5 15"
+      transport_input: ["ssh"]
+      access_class_in: null
+expectations:
+  events:
+    - rule_id: NET-T1133-001
+      severity: critical
+      attack_technique: T1133

@@ -1,0 +1,24 @@
+id: T1562.001-001-syslog-host-removed
+description: |
+  Pre-state: two logging hosts. Post-state: one removed. Should fire
+  NET-T1562.001-001 (defense-evasion via logging tampering).
+device:
+  hostname: r1-test
+  platform: ios-xe
+pre_state:
+  logging:
+    enabled: true
+    hosts:
+      - {host: "10.20.0.10", transport: "udp", port: 514, severity: 6}
+      - {host: "10.20.0.11", transport: "tcp", port: 1514, severity: 4}
+post_state:
+  logging:
+    enabled: true
+    hosts:
+      - {host: "10.20.0.10", transport: "udp", port: 514, severity: 6}
+expectations:
+  events:
+    - rule_id: NET-T1562.001-001
+      severity: critical
+      attack_technique: T1562
+      attack_subtechnique: T1562.001

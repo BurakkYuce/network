@@ -1,0 +1,43 @@
+title: Privilege 15 Local User Added
+id: NET-T1078-001
+status: experimental
+description: |
+  A new local user with privilege level 15 (full admin) was added.
+  Persistence + TACACS bypass archetype (T1078 — Valid Accounts).
+references:
+  - https://attack.mitre.org/techniques/T1078/
+tags:
+  - attack.persistence
+  - attack.t1078
+logsource:
+  product: cisco
+  service: config-drift
+detection:
+  selection:
+    diff_path:
+      - "/users/*"
+    diff_op:
+      - add
+    diff_value:
+      privilege: 15
+  condition: selection
+falsepositives:
+  - Approved user-creation change ticket
+level: critical
+custom:
+  attack:
+    tactic: persistence
+    technique: T1078
+  response:
+    alert_siem: true
+    notify_slack:
+      channel: "#soc-alerts"
+    page_oncall:
+      service: pagerduty-network-soc
+    snapshot_full_config: true
+    auto_rollback:
+      enabled: false
+      reason: "User removal needs manual review (forensic preservation)"
+  test:
+    scenario: tests/fixtures/attack_scenarios/T1078_001.yaml
+  replay_safe: true

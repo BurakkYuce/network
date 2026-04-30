@@ -1,0 +1,22 @@
+id: T1542.003-001-confreg-bypass
+description: |
+  Pre-state: confreg=0x2102 (normal). Post-state: confreg=0x2142 —
+  startup-config bypass on next reload. Bootkit precursor. Should
+  fire NET-T1542.003-001.
+device:
+  hostname: r1-test
+  platform: ios-xe
+pre_state:
+  boot:
+    boot_system: ["flash:isr4300-universalk9.17.09.04a.SPA.bin"]
+    confreg: "0x2102"
+post_state:
+  boot:
+    boot_system: ["flash:isr4300-universalk9.17.09.04a.SPA.bin"]
+    confreg: "0x2142"
+expectations:
+  events:
+    - rule_id: NET-T1542.003-001
+      severity: critical
+      attack_technique: T1542
+      attack_subtechnique: T1542.003

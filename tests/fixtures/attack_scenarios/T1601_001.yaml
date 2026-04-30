@@ -1,0 +1,21 @@
+id: T1601-001-boot-system-modified
+description: |
+  Pre-state: boot_system points at the official IOS-XE image.
+  Post-state: boot_system pointed at an unknown TFTP location —
+  pre-implant indicator. Should fire NET-T1601-001.
+device:
+  hostname: r1-test
+  platform: ios-xe
+pre_state:
+  boot:
+    boot_system: ["flash:isr4300-universalk9.17.09.04a.SPA.bin"]
+    confreg: "0x2102"
+post_state:
+  boot:
+    boot_system: ["tftp://198.51.100.7/firmware.bin"]
+    confreg: "0x2102"
+expectations:
+  events:
+    - rule_id: NET-T1601-001
+      severity: critical
+      attack_technique: T1601

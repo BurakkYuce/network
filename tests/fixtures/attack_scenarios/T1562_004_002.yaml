@@ -1,0 +1,22 @@
+id: T1562.004-002-acl-unbound
+description: |
+  Pre-state: GigabitEthernet0/0 has acl_in EDGE-IN. Post-state: same
+  interface, acl_in is null (binding removed). Should fire
+  NET-T1562.004-002.
+device:
+  hostname: r1-test
+  platform: ios-xe
+pre_state:
+  interfaces:
+    "GigabitEthernet0/0":
+      acl_in: "EDGE-IN"
+post_state:
+  interfaces:
+    "GigabitEthernet0/0":
+      acl_in: null
+expectations:
+  events:
+    - rule_id: NET-T1562.004-002
+      severity: high
+      attack_technique: T1562
+      attack_subtechnique: T1562.004

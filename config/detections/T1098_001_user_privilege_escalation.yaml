@@ -1,0 +1,43 @@
+title: Existing User Privilege Escalated
+id: NET-T1098-001
+status: experimental
+description: |
+  An existing local user's privilege level changed (typically to 15).
+  Attackers escalate an already-known account rather than creating a
+  new one to evade T1078-style detections (T1098 — Account
+  Manipulation).
+references:
+  - https://attack.mitre.org/techniques/T1098/
+tags:
+  - attack.persistence
+  - attack.t1098
+logsource:
+  product: cisco
+  service: config-drift
+detection:
+  selection:
+    diff_path:
+      - "/users/*/privilege"
+    diff_op:
+      - replace
+  condition: selection
+falsepositives:
+  - Approved privilege change ticket
+level: critical
+custom:
+  attack:
+    tactic: persistence
+    technique: T1098
+  response:
+    alert_siem: true
+    notify_slack:
+      channel: "#soc-alerts"
+    page_oncall:
+      service: pagerduty-network-soc
+    snapshot_full_config: true
+    auto_rollback:
+      enabled: false
+      reason: "Privilege rollback needs operator confirmation"
+  test:
+    scenario: tests/fixtures/attack_scenarios/T1098_001.yaml
+  replay_safe: true

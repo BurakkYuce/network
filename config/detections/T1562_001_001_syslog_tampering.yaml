@@ -1,0 +1,49 @@
+title: Syslog Destination Removed or Modified
+id: NET-T1562.001-001
+status: experimental
+description: |
+  Logging host configuration changed — destination removed, modified,
+  or severity raised. Attackers tamper with syslog forwarding to evade
+  detection (T1562.001 — Impair Defenses: Disable or Modify Tools).
+references:
+  - https://attack.mitre.org/techniques/T1562/001/
+tags:
+  - attack.defense_evasion
+  - attack.t1562
+  - attack.t1562.001
+logsource:
+  product: cisco
+  service: config-drift
+detection:
+  selection:
+    diff_path:
+      - "/logging"
+      - "/logging/hosts"
+      - "/logging/hosts/*"
+      - "/logging/hosts/*/*"
+      - "/logging/enabled"
+    diff_op:
+      - add
+      - remove
+      - replace
+  condition: selection
+falsepositives:
+  - Approved logging change ticket scoped to logging
+level: critical
+custom:
+  attack:
+    tactic: defense-evasion
+    technique: T1562
+    subtechnique: T1562.001
+  response:
+    alert_siem: true
+    notify_slack:
+      channel: "#soc-alerts"
+    snapshot_full_config: true
+    auto_rollback:
+      enabled: true
+      requires_approval: false
+      category: logging
+  test:
+    scenario: tests/fixtures/attack_scenarios/T1562_001_001.yaml
+  replay_safe: true

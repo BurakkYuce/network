@@ -1,0 +1,25 @@
+id: T1562.001-002-snmp-host-changed
+description: |
+  Pre-state: known SNMP host. Post-state: host destination IP altered
+  to attacker-controlled space. Should fire NET-T1562.001-002.
+device:
+  hostname: r1-test
+  platform: ios-xe
+pre_state:
+  snmp:
+    communities:
+      - {name: "ro_public", access: "RO", acl: "MGMT-IN"}
+    hosts:
+      - {host: "10.30.0.5", community: "ro_public", traps: true, version: "2c"}
+post_state:
+  snmp:
+    communities:
+      - {name: "ro_public", access: "RO", acl: "MGMT-IN"}
+    hosts:
+      - {host: "203.0.113.45", community: "ro_public", traps: true, version: "2c"}
+expectations:
+  events:
+    - rule_id: NET-T1562.001-002
+      severity: high
+      attack_technique: T1562
+      attack_subtechnique: T1562.001

@@ -1,0 +1,52 @@
+title: Config-Register or ROMmon Variable Manipulation (Bootkit Indicator)
+id: NET-T1542.003-001
+status: experimental
+description: |
+  The device's config-register (``confreg``) or a ROMmon variable
+  changed. ``confreg 0x2142`` bypasses startup-config; ROMmon ``BOOT``
+  pointing at TFTP is a classic bootkit precursor (T1542.003 —
+  Pre-OS Boot: Bootkit). For confreg there is virtually no legitimate
+  reason to change away from 0x2102 outside a controlled recovery.
+references:
+  - https://attack.mitre.org/techniques/T1542/003/
+  - https://tools.cisco.com/security/center/resources/integrity_assurance.html
+tags:
+  - attack.persistence
+  - attack.defense_evasion
+  - attack.t1542
+  - attack.t1542.003
+logsource:
+  product: cisco
+  service: config-drift
+detection:
+  selection:
+    diff_path:
+      - "/boot/confreg"
+      - "/boot/rommon_vars"
+      - "/boot/rommon_vars/*"
+    diff_op:
+      - add
+      - replace
+      - remove
+  condition: selection
+falsepositives: []
+level: critical
+custom:
+  attack:
+    tactic: persistence
+    technique: T1542
+    subtechnique: T1542.003
+  response:
+    alert_siem: true
+    notify_slack:
+      channel: "#soc-alerts"
+    page_oncall:
+      service: pagerduty-network-soc
+    snapshot_full_config: true
+    trigger_image_integrity_check: true
+    auto_rollback:
+      enabled: false
+      reason: "Bootkit indicator — IR team must investigate"
+  test:
+    scenario: tests/fixtures/attack_scenarios/T1542_003_001.yaml
+  replay_safe: false

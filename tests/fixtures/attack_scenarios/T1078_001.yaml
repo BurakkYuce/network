@@ -1,0 +1,21 @@
+id: T1078-001-priv15-user-added
+description: |
+  Pre-state: standard user set. Post-state: a new user "backdoor"
+  with privilege 15 was added. Should fire NET-T1078-001.
+device:
+  hostname: r1-test
+  platform: ios-xe
+pre_state:
+  users:
+    admin: {privilege: 15, password_set: true}
+    operator: {privilege: 5, password_set: true}
+post_state:
+  users:
+    admin: {privilege: 15, password_set: true}
+    operator: {privilege: 5, password_set: true}
+    backdoor: {privilege: 15, password_set: true}
+expectations:
+  events:
+    - rule_id: NET-T1078-001
+      severity: critical
+      attack_technique: T1078

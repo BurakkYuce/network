@@ -1,0 +1,44 @@
+title: New VTY Line Without Access-Class ACL
+id: NET-T1133-001
+status: experimental
+description: |
+  A vty/aux/console line was added or modified without an
+  ``access_class_in`` ACL bound. Open management plane = uninspected
+  remote access (T1133 — External Remote Services).
+references:
+  - https://attack.mitre.org/techniques/T1133/
+tags:
+  - attack.persistence
+  - attack.t1133
+logsource:
+  product: cisco
+  service: config-drift
+detection:
+  selection:
+    diff_path:
+      - "/lines/*"
+      - "/lines/*/access_class_in"
+    diff_op:
+      - add
+      - replace
+    diff_value:
+      access_class_in: null
+  condition: selection
+falsepositives:
+  - Approved line/vty change ticket with documented exception
+level: critical
+custom:
+  attack:
+    tactic: persistence
+    technique: T1133
+  response:
+    alert_siem: true
+    notify_slack:
+      channel: "#soc-alerts"
+    snapshot_full_config: true
+    auto_rollback:
+      enabled: false
+      reason: "VTY changes need human review"
+  test:
+    scenario: tests/fixtures/attack_scenarios/T1133_001.yaml
+  replay_safe: true

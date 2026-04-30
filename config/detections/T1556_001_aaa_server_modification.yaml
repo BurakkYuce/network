@@ -1,0 +1,50 @@
+title: Unauthorized AAA Server Modification
+id: NET-T1556-001
+status: experimental
+description: |
+  AAA server (TACACS/RADIUS) configuration changed — server added,
+  removed, or replaced. Attackers commonly tamper with AAA to bypass
+  centralised authentication and fall back to local credentials they
+  control (T1556).
+references:
+  - https://attack.mitre.org/techniques/T1556/
+tags:
+  - attack.defense_evasion
+  - attack.t1556
+logsource:
+  product: cisco
+  service: config-drift
+detection:
+  selection:
+    diff_path:
+      - "/aaa"
+      - "/aaa/servers"
+      - "/aaa/servers/*"
+      - "/aaa/servers/*/*"
+      - "/aaa/method_lists"
+      - "/aaa/method_lists/*"
+    diff_op:
+      - add
+      - remove
+      - replace
+  condition: selection
+falsepositives:
+  - Approved AAA server change ticket
+level: critical
+custom:
+  attack:
+    tactic: defense-evasion
+    technique: T1556
+  response:
+    alert_siem: true
+    notify_slack:
+      channel: "#soc-alerts"
+    page_oncall:
+      service: pagerduty-network-soc
+    snapshot_full_config: true
+    auto_rollback:
+      enabled: false
+      reason: "AAA rollback can lock out admins; manual review only"
+  test:
+    scenario: tests/fixtures/attack_scenarios/T1556_001.yaml
+  replay_safe: true

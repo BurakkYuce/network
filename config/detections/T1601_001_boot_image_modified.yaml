@@ -1,0 +1,46 @@
+title: Boot System Image Variable Changed
+id: NET-T1601-001
+status: experimental
+description: |
+  The ``boot system`` image variable changed — the device will boot a
+  different image at next reload. Common pre-implant step for T1525
+  (modified IOS) and T1601 (Modify System Image).
+references:
+  - https://attack.mitre.org/techniques/T1601/
+tags:
+  - attack.defense_evasion
+  - attack.t1601
+logsource:
+  product: cisco
+  service: config-drift
+detection:
+  selection:
+    diff_path:
+      - "/boot"
+      - "/boot/boot_system"
+      - "/boot/boot_system/*"
+    diff_op:
+      - add
+      - replace
+      - remove
+  condition: selection
+falsepositives:
+  - Approved firmware upgrade with ticket
+level: critical
+custom:
+  attack:
+    tactic: defense-evasion
+    technique: T1601
+  response:
+    alert_siem: true
+    notify_slack:
+      channel: "#soc-alerts"
+    page_oncall:
+      service: pagerduty-network-soc
+    snapshot_full_config: true
+    trigger_image_integrity_check: true
+    auto_rollback:
+      enabled: false
+  test:
+    scenario: tests/fixtures/attack_scenarios/T1601_001.yaml
+  replay_safe: true
