@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     audit_log_path: Path = Path("./audit.jsonl")
     snapshots_dir: Path = Path("./snapshots")
     fixtures_dir: Path = Path("tests/fixtures/genie_learn")
+    ephemeral_paths_file: Path = Path("config/ephemeral_paths.yaml")
 
 
 settings = Settings()

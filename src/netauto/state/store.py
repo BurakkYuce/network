@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
@@ -14,6 +15,13 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
 from netauto.state.canonical import DeviceState
 from netauto.state.models.v1 import DeviceStateV1
+
+
+@dataclass(frozen=True)
+class SnapshotInfo:
+    id: int
+    captured_at: datetime
+    schema_version: int
 
 
 class Base(DeclarativeBase):
@@ -123,6 +131,34 @@ class StateStore:
                 .limit(1)
             )
             row = s.execute(stmt).scalar_one_or_none()
+            if row is None:
+                return None
+            return DeviceStateV1.model_validate(row.state_json)
+
+    def list_snapshots(self, device_id: int) -> list[SnapshotInfo]:
+        """Return snapshots for a device, newest first."""
+        with Session(self.engine) as s:
+            stmt = (
+                select(
+                    StateSnapshotRow.id,
+                    StateSnapshotRow.captured_at,
+                    StateSnapshotRow.schema_version,
+                )
+                .where(StateSnapshotRow.device_id == device_id)
+                .order_by(StateSnapshotRow.captured_at.desc())
+            )
+            return [
+                SnapshotInfo(
+                    id=row.id, captured_at=row.captured_at, schema_version=row.schema_version
+                )
+                for row in s.execute(stmt).all()
+            ]
+
+    def get_snapshot(self, snapshot_id: int) -> DeviceStateV1 | None:
+        with Session(self.engine) as s:
+            row = s.execute(
+                select(StateSnapshotRow).where(StateSnapshotRow.id == snapshot_id)
+            ).scalar_one_or_none()
             if row is None:
                 return None
             return DeviceStateV1.model_validate(row.state_json)

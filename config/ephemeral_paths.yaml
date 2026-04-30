@@ -1,0 +1,25 @@
+# Ephemeral state paths — stripped before diff so they don't cause noise.
+# Pattern syntax: dotted path; '*' is a single-segment wildcard.
+# Patterns operate on the canonical state dict (DeviceStateV1.model_dump).
+
+# Interface counters / timers (when collected from Genie 'learn(interface)')
+- "interfaces.*.counters"
+- "interfaces.*.last_input"
+- "interfaces.*.last_output"
+- "interfaces.*.last_flap"
+
+# BGP neighbor session timers (when collected later)
+- "bgp.neighbors.*.uptime"
+- "bgp.neighbors.*.messages_received"
+- "bgp.neighbors.*.messages_sent"
+
+# OSPF neighbor uptime
+- "ospf.neighbors.*.uptime"
+
+# System counters
+- "system.uptime"
+- "system.cpu.utilization"
+
+# Platform sensors
+- "platform.fan_speed"
+- "platform.temperature"

@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import typer
@@ -8,6 +9,8 @@ from netauto.audit.log import AuditLog
 from netauto.collector.runner import Collector, CollectorError
 from netauto.inventory import load_testbed
 from netauto.settings import settings
+from netauto.state.diff import diff_states
+from netauto.state.ephemeral import load_ephemeral_patterns
 from netauto.state.store import StateStore
 
 app = typer.Typer(
@@ -117,6 +120,88 @@ def state_show(
         console.print(f"[yellow]no snapshot yet for:[/yellow] {device}")
         raise typer.Exit(1)
     typer.echo(state.model_dump_json(indent=2))
+
+
+@state_app.command("list")
+def state_list(
+    device: str = typer.Argument(..., help="Device hostname."),
+    db_url: str | None = typer.Option(None, "--db-url", help="Override settings.db_url."),
+) -> None:
+    """List snapshots for a device (newest first)."""
+    store = StateStore(db_url or settings.db_url, create_schema=True)
+    device_id = store.get_device_id(device)
+    if device_id is None:
+        console.print(f"[red]device not found:[/red] {device}")
+        raise typer.Exit(1)
+
+    snapshots = store.list_snapshots(device_id)
+    if not snapshots:
+        console.print(f"[yellow]no snapshots for:[/yellow] {device}")
+        return
+
+    table = Table(title=f"Snapshots for {device} ({len(snapshots)})")
+    table.add_column("ID", justify="right", style="cyan")
+    table.add_column("Captured at")
+    table.add_column("Schema", justify="right")
+    for s in snapshots:
+        table.add_row(str(s.id), s.captured_at.isoformat(), str(s.schema_version))
+    console.print(table)
+
+
+@app.command("diff")
+def diff(
+    device: str = typer.Argument(..., help="Device hostname."),
+    from_id: int | None = typer.Option(
+        None, "--from", help="Source snapshot id (default: second-latest)."
+    ),
+    to_id: int | None = typer.Option(None, "--to", help="Target snapshot id (default: latest)."),
+    db_url: str | None = typer.Option(None, "--db-url", help="Override settings.db_url."),
+    ephemeral_file: Path | None = typer.Option(  # noqa: B008
+        None, "--ephemeral", help="Path to ephemeral_paths.yaml."
+    ),
+    show_ops: bool = typer.Option(True, "--ops/--no-ops", help="Print JSON Patch ops to stdout."),
+) -> None:
+    """Show drift (RFC 6902 JSON Patch) between two state snapshots."""
+    store = StateStore(db_url or settings.db_url, create_schema=True)
+    device_id = store.get_device_id(device)
+    if device_id is None:
+        console.print(f"[red]device not found:[/red] {device}")
+        raise typer.Exit(1)
+
+    snapshots = store.list_snapshots(device_id)
+    if from_id is None or to_id is None:
+        if len(snapshots) < 2:
+            console.print(f"[yellow]need 2+ snapshots; have {len(snapshots)} for {device}[/yellow]")
+            raise typer.Exit(1)
+        if from_id is None:
+            from_id = snapshots[1].id
+        if to_id is None:
+            to_id = snapshots[0].id
+
+    old = store.get_snapshot(from_id)
+    new = store.get_snapshot(to_id)
+    if old is None:
+        console.print(f"[red]snapshot not found:[/red] #{from_id}")
+        raise typer.Exit(1)
+    if new is None:
+        console.print(f"[red]snapshot not found:[/red] #{to_id}")
+        raise typer.Exit(1)
+
+    ep_path = ephemeral_file or settings.ephemeral_paths_file
+    patterns = load_ephemeral_patterns(ep_path)
+    result = diff_states(old, new, patterns)
+
+    if result.is_empty:
+        console.print(f"[green]no drift[/green] device={device} from=#{from_id} to=#{to_id}")
+        return
+
+    summary_parts = [f"{op}={n}" for op, n in sorted(result.summary.items())]
+    console.print(
+        f"[yellow]drift[/yellow] device={device} from=#{from_id} to=#{to_id} "
+        f"ops={len(result.ops)} ({', '.join(summary_parts)})"
+    )
+    if show_ops:
+        typer.echo(json.dumps(result.ops, indent=2))
 
 
 if __name__ == "__main__":
