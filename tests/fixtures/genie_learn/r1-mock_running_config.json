@@ -20,5 +20,41 @@
         "20": {"action": "deny", "protocol": "ip", "src": "any", "dst": "any", "log": true}
       }
     }
+  },
+  "aaa": {
+    "servers": [
+      {"address": "10.10.10.5", "type": "tacacs+", "key": true},
+      {"address": "10.10.10.6", "type": "tacacs+", "key": true}
+    ],
+    "method_lists": [
+      {"name": "default", "type": "authentication", "methods": ["group tacacs+", "local"]},
+      {"name": "default", "type": "authorization", "methods": ["group tacacs+", "local"]}
+    ]
+  },
+  "logging": {
+    "enabled": true,
+    "hosts": [
+      {"host": "10.20.0.10", "transport": "udp", "port": 514, "severity": 6},
+      {"host": "10.20.0.11", "transport": "tcp", "port": 1514, "severity": 4}
+    ],
+    "facility": "local6",
+    "buffered_size": 8192
+  },
+  "snmp_server": {
+    "communities": [
+      {"name": "ro_public", "access": "RO", "acl": "MGMT-IN"}
+    ],
+    "hosts": [
+      {"host": "10.30.0.5", "community": "ro_public", "traps": true, "version": "2c"}
+    ]
+  },
+  "line": [
+    {"range": "console 0", "transport_input": [], "exec_timeout_seconds": 600},
+    {"range": "vty 0 4", "transport_input": ["ssh"], "access_class_in": "MGMT-IN", "exec_timeout_seconds": 600},
+    {"range": "vty 5 15", "transport_input": ["ssh"], "access_class_in": "MGMT-IN", "exec_timeout_seconds": 600}
+  ],
+  "boot": {
+    "boot_system": ["flash:isr4300-universalk9.17.09.04a.SPA.bin"],
+    "confreg": "0x2102"
   }
 }

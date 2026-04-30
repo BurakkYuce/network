@@ -1,9 +1,35 @@
 from netauto.state.models.v1 import (
     ACL,
+    AAAConfig,
+    AAAMethodList,
+    AAAServer,
     ACLEntry,
+    BootConfig,
     DeviceStateV1,
     Interface,
+    LineConfig,
     LocalUser,
+    LoggingConfig,
+    LoggingHost,
+    SNMPCommunity,
+    SNMPConfig,
+    SNMPHost,
 )
 
-__all__ = ["ACL", "ACLEntry", "DeviceStateV1", "Interface", "LocalUser"]
+__all__ = [
+    "ACL",
+    "AAAConfig",
+    "AAAMethodList",
+    "AAAServer",
+    "ACLEntry",
+    "BootConfig",
+    "DeviceStateV1",
+    "Interface",
+    "LineConfig",
+    "LocalUser",
+    "LoggingConfig",
+    "LoggingHost",
+    "SNMPCommunity",
+    "SNMPConfig",
+    "SNMPHost",
+]

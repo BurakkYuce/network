@@ -5,9 +5,14 @@ from pathlib import Path
 import pytest
 
 from netauto.state.normalize.ios_xe import (
+    normalize_aaa,
     normalize_acls,
+    normalize_boot,
     normalize_interfaces,
     normalize_ios_xe,
+    normalize_lines,
+    normalize_logging,
+    normalize_snmp,
     normalize_users,
 )
 
@@ -103,3 +108,99 @@ def test_normalize_ios_xe_handles_empty_inputs() -> None:
     assert state.interfaces == {}
     assert state.users == {}
     assert state.acls == {}
+    assert state.aaa is None
+    assert state.logging is None
+    assert state.snmp is None
+    assert state.lines == {}
+    assert state.boot is None
+
+
+def test_normalize_aaa_servers_and_method_lists(cfg_data: dict) -> None:
+    aaa = normalize_aaa(cfg_data)
+    assert aaa is not None
+    assert len(aaa.servers) == 2
+    assert aaa.servers[0].address == "10.10.10.5"
+    assert aaa.servers[0].type == "tacacs+"
+    assert aaa.servers[0].key_set is True
+    assert {ml.type for ml in aaa.method_lists} == {"authentication", "authorization"}
+
+
+def test_normalize_aaa_absent_returns_none() -> None:
+    assert normalize_aaa({}) is None
+
+
+def test_normalize_logging_hosts_and_severity(cfg_data: dict) -> None:
+    log = normalize_logging(cfg_data)
+    assert log is not None
+    assert log.enabled is True
+    assert len(log.hosts) == 2
+    assert log.hosts[0].host == "10.20.0.10"
+    assert log.hosts[1].transport == "tcp"
+    assert log.hosts[1].port == 1514
+    assert log.facility == "local6"
+    assert log.buffered_size == 8192
+
+
+def test_normalize_logging_absent_returns_none() -> None:
+    assert normalize_logging({}) is None
+
+
+def test_normalize_snmp_communities_and_hosts(cfg_data: dict) -> None:
+    snmp = normalize_snmp(cfg_data)
+    assert snmp is not None
+    assert len(snmp.communities) == 1
+    assert snmp.communities[0].name == "ro_public"
+    assert snmp.communities[0].access == "RO"
+    assert snmp.communities[0].acl == "MGMT-IN"
+    assert len(snmp.hosts) == 1
+    assert snmp.hosts[0].host == "10.30.0.5"
+
+
+def test_normalize_snmp_accepts_legacy_key() -> None:
+    """Either ``snmp_server`` or ``snmp`` is accepted as the parser key."""
+    legacy = {"snmp": {"communities": [{"name": "ro", "access": "RO"}]}}
+    snmp = normalize_snmp(legacy)
+    assert snmp is not None
+    assert snmp.communities[0].name == "ro"
+
+
+def test_normalize_snmp_absent_returns_none() -> None:
+    assert normalize_snmp({}) is None
+
+
+def test_normalize_lines_keyed_by_range(cfg_data: dict) -> None:
+    lines = normalize_lines(cfg_data)
+    assert set(lines.keys()) == {"console 0", "vty 0 4", "vty 5 15"}
+    vty04 = lines["vty 0 4"]
+    assert vty04.transport_input == ["ssh"]
+    assert vty04.access_class_in == "MGMT-IN"
+    assert vty04.exec_timeout_seconds == 600
+
+
+def test_normalize_lines_empty_when_absent() -> None:
+    assert normalize_lines({}) == {}
+
+
+def test_normalize_boot_extracts_boot_system_and_confreg(cfg_data: dict) -> None:
+    boot = normalize_boot(cfg_data)
+    assert boot is not None
+    assert boot.boot_system == ["flash:isr4300-universalk9.17.09.04a.SPA.bin"]
+    assert boot.confreg == "0x2102"
+    assert boot.rommon_vars == {}
+
+
+def test_normalize_boot_absent_returns_none() -> None:
+    assert normalize_boot({}) is None
+
+
+def test_normalize_ios_xe_full_includes_all_new_domains(intf_data: dict, cfg_data: dict) -> None:
+    state = normalize_ios_xe(
+        hostname="r1-mock",
+        interfaces=intf_data,
+        parsed_config=cfg_data,
+    )
+    assert state.aaa is not None and len(state.aaa.servers) == 2
+    assert state.logging is not None and len(state.logging.hosts) == 2
+    assert state.snmp is not None and len(state.snmp.communities) == 1
+    assert "vty 0 4" in state.lines
+    assert state.boot is not None and state.boot.confreg == "0x2102"
