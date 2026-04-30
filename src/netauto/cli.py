@@ -7,6 +7,7 @@ from rich.console import Console
 from rich.table import Table
 
 from netauto.audit.log import AuditLog
+from netauto.audit.verify import verify_chain
 from netauto.collector.runner import Collector, CollectorError
 from netauto.detection.engine import EvalContext, eval_rules
 from netauto.detection.rule import load_rules_from_dir
@@ -25,8 +26,10 @@ app = typer.Typer(
 
 inventory_app = typer.Typer(help="Inventory commands.", no_args_is_help=True)
 state_app = typer.Typer(help="State commands.", no_args_is_help=True)
+audit_app = typer.Typer(help="Audit log commands.", no_args_is_help=True)
 app.add_typer(inventory_app, name="inventory")
 app.add_typer(state_app, name="state")
+app.add_typer(audit_app, name="audit")
 
 console = Console()
 
@@ -316,6 +319,27 @@ def detect(
             },
         )
     console.print(table)
+
+
+@audit_app.command("verify")
+def audit_verify(
+    path: Path | None = typer.Option(  # noqa: B008
+        None, "--path", help="Path to audit.jsonl (default: settings.audit_log_path)."
+    ),
+) -> None:
+    """Recompute and check the SHA-256 hash chain of the audit log."""
+    p = path or settings.audit_log_path
+    result = verify_chain(p)
+    if result.ok:
+        console.print(f"[green]✓ chain valid[/green] events={result.total_events} path={p}")
+        return
+    console.print(
+        f"[red]✗ chain INVALID[/red] events={result.total_events} "
+        f"issues={len(result.issues)} path={p}"
+    )
+    for issue in result.issues:
+        console.print(f"  [red]•[/red] {issue}")
+    raise typer.Exit(1)
 
 
 if __name__ == "__main__":
