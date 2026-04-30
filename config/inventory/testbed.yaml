@@ -1,0 +1,57 @@
+# pyATS-compatible testbed with netauto custom facts
+# Used by netauto.inventory.loader.load_testbed
+testbed:
+  name: netauto-demo
+  credentials:
+    default:
+      username: "%ENV{NETAUTO_RO_USER}"
+      password: "%ENV{NETAUTO_RO_PASS}"
+
+devices:
+  r1-mock:
+    os: mock
+    type: router
+    platform: csr1000v
+    connections:
+      cli:
+        protocol: unknown
+        ip: 127.0.0.1
+    custom:
+      netauto:
+        role: edge
+        tier: 4
+        criticality: 4
+        tags: [dc-east, perimeter, ipv4-only]
+        site: dc-east
+
+  r2-mock:
+    os: mock
+    type: router
+    platform: csr1000v
+    connections:
+      cli:
+        protocol: unknown
+        ip: 127.0.0.1
+    custom:
+      netauto:
+        role: core
+        tier: 5
+        criticality: 5
+        tags: [dc-east, core]
+        site: dc-east
+
+  fw1-mock:
+    os: mock
+    type: firewall
+    platform: asa
+    connections:
+      cli:
+        protocol: unknown
+        ip: 127.0.0.1
+    custom:
+      netauto:
+        role: firewall
+        tier: 5
+        criticality: 5
+        tags: [dc-east, perimeter]
+        site: dc-east

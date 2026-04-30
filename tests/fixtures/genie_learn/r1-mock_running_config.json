@@ -1,0 +1,24 @@
+{
+  "username": {
+    "admin": {"privilege": 15, "secret": "$9$..."},
+    "operator": {"privilege": 5, "password": "$8$..."},
+    "monitor": {"privilege": 1, "ssh_key": "ssh-rsa AAAA..."}
+  },
+  "ip_access_list": {
+    "EDGE-IN": {
+      "type": "extended",
+      "entries": {
+        "10": {"action": "permit", "protocol": "tcp", "src": "any", "dst": "any", "dst_port": "443"},
+        "20": {"action": "permit", "protocol": "tcp", "src": "10.0.0.0/8", "dst": "any", "dst_port": "22"},
+        "30": {"action": "deny", "protocol": "ip", "src": "any", "dst": "any", "log": true}
+      }
+    },
+    "MGMT-IN": {
+      "type": "extended",
+      "entries": {
+        "10": {"action": "permit", "protocol": "tcp", "src": "10.0.0.0/8", "dst": "any", "dst_port": "22"},
+        "20": {"action": "deny", "protocol": "ip", "src": "any", "dst": "any", "log": true}
+      }
+    }
+  }
+}
